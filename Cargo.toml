@@ -1,0 +1,12 @@
+[package]
+name = "st7789v2_driver"
+version = "1.0.0"
+edition = "2021"
+authors = ["GordonCox"]
+description = "Display Driver to Support for ST7789V2 LCD 1.69 inch with embedded-graphics support"
+license = "MIT"
+repository = "https://github.com/GordonCox/st7789v2_driver.git"
+
+[dependencies]
+embedded-hal = { version = "1.0.0" }
+embedded-graphics = { version = "0.8.1" }

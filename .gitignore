@@ -1,0 +1,5 @@
+
+/examples/demo_lcd/target
+/target
+*.lock
+.DS_Store
