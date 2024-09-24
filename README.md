@@ -11,10 +11,6 @@ Copy code
 embedded-hal = { version = "1.0.0" }
 embedded-graphics = { version = "0.7.1" }`
 
-### Legacy Support in Version 0.3.2
-
-For projects that still rely on the older version of the crate, **version 0.3.2** continues to provide compatibility with **embedded-graphics 0.7.1**. This is useful for maintaining projects that use older libraries or hardware.
-
 Features
 --------
 
