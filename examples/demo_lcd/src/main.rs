@@ -8,7 +8,7 @@ use embedded_hal::delay::DelayNs;
 
 use fugit::RateExtU32;
 use panic_halt as _;
-use st7789v2_driver::{HORIZONTAL, ST7789V2, VERTICAL}; // for using write! macro
+use st7789v2_driver::{ST7789V2, VERTICAL, HORIZONTAL}; // for using write! macro
 
 use waveshare_rp2040_lcd_1_69::entry;
 use waveshare_rp2040_lcd_1_69::{
@@ -31,7 +31,6 @@ use embedded_graphics::{
 
 const DEFAULT_LCD_WIDTH: u32 = 240;
 const DEFAULT_LCD_HEIGHT: u32 = 280;
-const DEFAULT_SCREEN_DIRECTON: u16 = VERTICAL;
 
 pub struct DelayWrapper<'a> {
     delay: &'a mut Delay,
@@ -125,10 +124,10 @@ fn main() -> ! {
         embedded_hal::spi::MODE_0,
     );
 
-    let _screen_direction = VERTICAL;
+    let screen_direction = VERTICAL;
     let mut lcd_width = DEFAULT_LCD_WIDTH;
     let mut lcd_height = DEFAULT_LCD_HEIGHT;
-    if _screen_direction == HORIZONTAL {
+    if screen_direction == HORIZONTAL {
         lcd_width = DEFAULT_LCD_HEIGHT;
         lcd_height = DEFAULT_LCD_WIDTH;
     }
@@ -139,7 +138,7 @@ fn main() -> ! {
         lcd_cs,
         lcd_rst,
         false,
-        _screen_direction,
+        screen_direction,
         lcd_width,
         lcd_height,
     );
