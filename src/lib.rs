@@ -7,47 +7,49 @@ use embedded_hal::delay::DelayNs;
 use embedded_hal::digital::OutputPin;
 use embedded_hal::spi::SpiBus;
 
+pub const HORIZONTAL: u16 = 0;
+pub const VERTICAL: u16 = 1;
 /// Enumeration of instructions for the ST7789V2 display.
 pub enum Instruction {
-    Nop = 0x00,     /// No Operation
-    SwReset = 0x01, // Software Reset
-    RddId = 0x04,   // Read Display Identification Information
-    RddSt = 0x09,   // Read Display Status
-    SlpIn = 0x10,   // Enter Sleep Mode
-    SlpOut = 0x11,  // Sleep Out Mode
-    PtlOn = 0x12,   // Partial Mode ON
-    NorOn = 0x13,   // Normal Display Mode ON
-    InvOff = 0x20,  // Display Inversion OFF
-    InvOn = 0x21,   // Display Inversion ON
-    DispOff = 0x28, // Display OFF
-    DispOn = 0x29,  // Display ON
-    CaSet = 0x2A,   // Column Address Set
-    RaSet = 0x2B,   // Row Address Set
-    RamWr = 0x2C,   // Memory Write
-    RamRd = 0x2E,   // Memory Read
-    PtlAr = 0x30,   // Partial Area
-    ColMod = 0x3A,  /// Pixel Format Set
-    MadCtl = 0x36,  /// Memory Access Control
-    FrmCtr1 = 0xB1, // Frame Rate Control (In normal mode/Full colors)
-    FrmCtr2 = 0xB2, /// (PORCTRL) Porch Control Settings
-    FrmCtr3 = 0xB3, // Frame Rate Control (In partial mode/full colors)
-    InvCtr = 0xB4,  // Display Inversion Control
-    DisSet5 = 0xB6, // Display Function Control
-    GateCtl = 0xB7, /// (GCTRL) Gate Volate Control
-    VComs = 0xBB,   /// (VCOMS) Common Voltage Setting
-    PwCtr1 = 0xC0,  // Power Control 1
-    PwCtr2 = 0xC1,  // Power Control 2
-    PwCtr3 = 0xC2,  // Power Control 3
-    PwCtr4 = 0xC3,  // Power Control 4
-    PwCtr5 = 0xC4,  // Power Control 5
-    VmCtr1 = 0xC5,  // VCOM Control 1
-    RdId1 = 0xDA,   // Read ID1
-    RdId2 = 0xDB,   // Read ID2
-    RdId3 = 0xDC,   // Read ID3
-    RdId4 = 0xDD,   // Read ID4
-    PwCtr6 = 0xFC,  // Power Control 6
-    GmcTrp1 = 0xE0, // Positive Gamma Correction
-    GmcTrn1 = 0xE1, // Negative Gamma Correction
+    Nop = 0x00,      // No Operation
+    SwReset = 0x01,  // Software Reset
+    RddId = 0x04,    // Read Display Identification Information
+    RddSt = 0x09,    // Read Display Status
+    SlpIn = 0x10,    // Enter Sleep Mode (SLPIN)
+    SlpOut = 0x11,   // Exit Sleep Mode (SLPOUT)
+    PtlOn = 0x12,    // Enter Partial Mode (PTLON)
+    NorOn = 0x13,    // Enter Normal Mode (NORON)
+    InvOff = 0x20,   // Display Inversion Off (INVOFF)
+    InvOn = 0x21,    // Display Inversion On (INVON)
+    GamSet = 0x26,   // Gamma Set (GAMSET) — Choose Gamma curve
+    DispOff = 0x28,  // Display Off (DISPOFF)
+    DispOn = 0x29,   // Display On (DISPON)
+    CaSet = 0x2A,    // Column Address Set (CASET)
+    RaSet = 0x2B,    // Row Address Set (RASET)
+    RamWr = 0x2C,    // Memory Write (RAMWR)
+    RamRd = 0x2E,    // Memory Read (RAMRD)
+    PtlAr = 0x30,    // Partial Area (PTLAR)
+    VScrDef = 0x33,  // Vertical Scrolling Definition (VSCRDEF)
+    TEOFF = 0x34,    // Tearing Effect Line OFF (TEOFF)
+    TEON = 0x35,     // Tearing Effect Line ON (TEON)
+    MadCtl = 0x36,   // Memory Access Control (MADCTL)
+    ColMod = 0x3A,   // Pixel Format Set (COLMOD)
+    WrMemC = 0x3C,   // Write Memory Continue (WRMEMC)
+    RdMemC = 0x3E,   // Read Memory Continue (RDMEMC)
+    Ste = 0x44,      // Set Tear Scanline (STE)
+    GScan = 0x45,    // Get Scanline (GSCAN)
+    WrDisBV = 0x51,  // Write Display Brightness (WRDISBV)
+    RdDisBV = 0x52,  // Read Display Brightness (RDDISBV)
+    WrCtrLD = 0x53,  // Write CTRL Display (WRCTRLD)
+    RdCtrLD = 0x54,  // Read CTRL Display (RDCTRLD)
+    WrCACE = 0x55,   // Write CABC (WRCACE)
+    RdCABC = 0x56,   // Read CABC (RDCABC)
+    WrCABCMB = 0x5E, // Write CABC Minimum Brightness (WRCABCMB)
+    RdCABCMB = 0x5F, // Read CABC Minimum Brightness (RDCABCMB)
+    RdABCSDR = 0x68, // Read Automatic Brightness Control Self-Diagnostic Result (RDABCSDR)
+    RdId1 = 0xDA,    // Read ID1 (RDID1)
+    RdId2 = 0xDB,    // Read ID2 (RDID2)
+    RdId3 = 0xDC,    // Read ID3 (RDID3)
 }
 
 /// Structure to represent a region.
@@ -81,6 +83,8 @@ where
 
     /// Whether the display is RGB (true) or BGR (false).
     _rgb: bool,
+    /// Screen Direction Horizontal or vertical
+    sd: u16,
 
     /// Global image offset.
     width: u32,
@@ -105,13 +109,23 @@ where
     /// * `rgb` - Whether the display is RGB (true) or BGR (false).
     /// * `width` - Width of the display.
     /// * `height` - Height of the display.
-    pub fn new(spi: SPI, dc: DC, cs: CS, rst: RST, _rgb: bool, width: u32, height: u32) -> Self {
+    pub fn new(
+        spi: SPI,
+        dc: DC,
+        cs: CS,
+        rst: RST,
+        _rgb: bool,
+        sd: u16,
+        width: u32,
+        height: u32,
+    ) -> Self {
         ST7789V2 {
             spi,
             dc,
             cs,
             rst,
             _rgb,
+            sd,
             width,
             height,
             regions: [None; 10],
@@ -137,14 +151,18 @@ where
     {
         self.hard_reset(delay)?;
         //Set Attributes for Scan Direction
-        //self.write_command(0x36, &[0x78])?;  // Horizontal
-        self.write_command(0x36, &[0x00])?; // Vertical
-                                            //Initalize Display
-        self.write_command(0x36, &[0x00])?;
-        self.write_command(0x3A, &[0x05])?;
+        if self.sd == VERTICAL {
+            self.write_command(Instruction::MadCtl as u8, &[0x00])?; // Vertical
+        } else {
+            self.write_command(Instruction::MadCtl as u8, &[0x78])?; // Horizontal
+        }
+
+        //Initalize Display
+        //self.write_command(Instruction::MadCtl as u8, &[0x00])?;  //Vertical Screen Direction
+        self.write_command(Instruction::ColMod as u8, &[0x05])?;
         self.write_command(0xB2, &[0x0B, 0x0B, 0x00, 0x33, 0x35])?;
         self.write_command(0xB7, &[0x11])?;
-        self.write_command(0xBB, &[0x35])?; // Stopped her to pick up kids.
+        self.write_command(0xBB, &[0x35])?;
         self.write_command(0xC0, &[0x2C])?;
         self.write_command(0xC2, &[0x01])?;
         self.write_command(0xC3, &[0x0D])?;
@@ -165,12 +183,12 @@ where
             ],
         )?;
         self.write_command(0xE4, &[0x25, 0x00, 0x00])?;
-        self.write_command(0x21, &[])?;
-        self.write_command(0x11, &[])?;
+        self.write_command(Instruction::InvOn as u8, &[])?;
+        self.write_command(Instruction::SlpOut as u8, &[])?;
 
         delay.delay_ms(120);
 
-        self.write_command(0x29, &[])?; // Display ON (DISPON)
+        self.write_command(Instruction::DispOn as u8, &[])?; // Display ON (DISPON)
 
         Ok(())
     }
@@ -293,18 +311,29 @@ where
         end_x: u16,
         end_y: u16,
     ) -> Result<(), ()> {
-
-        self.write_command(Instruction::CaSet as u8, &[])?;
-        self.start_data()?;
-        // Write start and end x-coordinates
-        self.write_data(&start_x.to_be_bytes())?; // Big-endian: splits into two bytes
-        self.write_data(&(end_x - 1).to_be_bytes())?;
-        self.write_command(Instruction::RaSet as u8, &[])?;
-        self.start_data()?;
-        // Write start and end y-coordinates (with a 20 pixel offset)
-        self.write_data(&(start_y + 20).to_be_bytes())?;
-        self.write_data(&(end_y + 20 - 1).to_be_bytes())?;
-
+        if self.sd == VERTICAL {
+            self.write_command(Instruction::CaSet as u8, &[])?;
+            self.start_data()?;
+            // Write start and end x-coordinates
+            self.write_data(&start_x.to_be_bytes())?; // Big-endian: splits into two bytes
+            self.write_data(&(end_x - 1).to_be_bytes())?;
+            self.write_command(Instruction::RaSet as u8, &[])?;
+            self.start_data()?;
+            // Write start and end y-coordinates (with a 20 pixel offset)
+            self.write_data(&(start_y + 20).to_be_bytes())?;
+            self.write_data(&(end_y + 20 - 1).to_be_bytes())?;
+        } else {
+            self.write_command(Instruction::CaSet as u8, &[])?;
+            self.start_data()?;
+            // Write start and end x-coordinates
+            self.write_data(&(start_x + 20).to_be_bytes())?; // Big-endian: splits into two bytes
+            self.write_data(&(end_x + 20 - 1).to_be_bytes())?;
+            self.write_command(Instruction::RaSet as u8, &[])?;
+            self.start_data()?;
+            // Write start and end y-coordinates (with a 20 pixel offset)
+            self.write_data(&(start_y).to_be_bytes())?;
+            self.write_data(&(end_y - 1).to_be_bytes())?;
+        }
         self.write_command(0x2C, &[])?;
 
         Ok(())

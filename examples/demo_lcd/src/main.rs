@@ -8,7 +8,7 @@ use embedded_hal::delay::DelayNs;
 
 use fugit::RateExtU32;
 use panic_halt as _;
-use st7789v2_driver::ST7789V2; // for using write! macro
+use st7789v2_driver::{HORIZONTAL, ST7789V2, VERTICAL}; // for using write! macro
 
 use waveshare_rp2040_lcd_1_69::entry;
 use waveshare_rp2040_lcd_1_69::{
@@ -29,8 +29,9 @@ use embedded_graphics::{
     primitives::{Line, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle},
 };
 
-const LCD_WIDTH: u32 = 240;
-const LCD_HEIGHT: u32 = 280;
+const DEFAULT_LCD_WIDTH: u32 = 240;
+const DEFAULT_LCD_HEIGHT: u32 = 280;
+const DEFAULT_SCREEN_DIRECTON: u16 = VERTICAL;
 
 pub struct DelayWrapper<'a> {
     delay: &'a mut Delay,
@@ -124,9 +125,23 @@ fn main() -> ! {
         embedded_hal::spi::MODE_0,
     );
 
+    let _screen_direction = VERTICAL;
+    let mut lcd_width = DEFAULT_LCD_WIDTH;
+    let mut lcd_height = DEFAULT_LCD_HEIGHT;
+    if _screen_direction == HORIZONTAL {
+        lcd_width = DEFAULT_LCD_HEIGHT;
+        lcd_height = DEFAULT_LCD_WIDTH;
+    }
     // Initialize the display
     let mut display = ST7789V2::new(
-        spi_bus, lcd_dc, lcd_cs, lcd_rst, false, LCD_WIDTH, LCD_HEIGHT,
+        spi_bus,
+        lcd_dc,
+        lcd_cs,
+        lcd_rst,
+        false,
+        _screen_direction,
+        lcd_width,
+        lcd_height,
     );
     //display.init(&mut delay).unwrap();
 
@@ -142,7 +157,7 @@ fn main() -> ! {
     delay.delay_ms(1000);
 
     let lcd_zero = Point::zero();
-    let lcd_max_corner = Point::new((LCD_WIDTH - 1) as i32, (LCD_HEIGHT - 1) as i32);
+    let lcd_max_corner = Point::new((lcd_width - 1) as i32, (lcd_height - 1) as i32);
 
     let style = PrimitiveStyleBuilder::new()
         .fill_color(Rgb565::BLUE)
@@ -160,7 +175,7 @@ fn main() -> ! {
 
     Rectangle::with_corners(
         Point::new(1, 1),
-        Point::new((LCD_WIDTH - 2) as i32, (LCD_HEIGHT - 2) as i32),
+        Point::new((lcd_width - 2) as i32, (lcd_height - 2) as i32),
     )
     .into_styled(style)
     .draw(&mut display)
@@ -172,8 +187,8 @@ fn main() -> ! {
         .unwrap();
 
     Line::new(
-        Point::new(0, (LCD_HEIGHT - 1) as i32),
-        Point::new((LCD_WIDTH - 1) as i32, 0),
+        Point::new(0, (lcd_height - 1) as i32),
+        Point::new((lcd_width - 1) as i32, 0),
     )
     .into_styled(PrimitiveStyle::with_stroke(Rgb565::GREEN, 1))
     .draw(&mut display)
@@ -183,13 +198,13 @@ fn main() -> ! {
     let mut l: i32 = 0;
     let mut c = Rgb565::RED;
     loop {
-        Line::new(Point::new(0, l), Point::new((LCD_WIDTH - 1) as i32, l))
+        Line::new(Point::new(0, l), Point::new((lcd_width - 1) as i32, l))
             .into_styled(PrimitiveStyle::with_stroke(c, 1))
             .draw(&mut display)
             .unwrap();
         delay.delay_ms(10);
         l += 1;
-        if l == LCD_HEIGHT as i32 {
+        if l == lcd_height as i32 {
             l = 0;
             c = match c {
                 Rgb565::RED => Rgb565::GREEN,
