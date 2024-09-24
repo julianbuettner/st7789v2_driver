@@ -6,7 +6,7 @@ edition = "2018"
 homepage = "https://github.com/rp-rs/rp-hal-boards/tree/main/boards/waveshare-rp2040-lcd-1_69"
 description = "Board Support Package for the Waveshare RP2040 LCD 1.69 inch"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/rp-rs/rp-hal-boards.git"
+repository = "https://github.com/GordonCox/st7789v2_driver.git"
 
 [dependencies]
 st7789v2_driver = { path = "../.." } # Reference the main crate
