@@ -9,4 +9,4 @@ repository = "https://github.com/GordonCox/st7789v2_driver.git"
 
 [dependencies]
 embedded-hal = { version = "1.0.0" }
-embedded-graphics = { version = "0.7.1" }
+embedded-graphics = { version = "0.8.1" }
